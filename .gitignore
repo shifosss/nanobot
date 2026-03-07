@@ -41,3 +41,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Agents
+.mcp.json
+CLAUDE.md
+AGENTS.md
+.claude/*
