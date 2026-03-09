@@ -17,7 +17,7 @@ export function AppShell() {
 }
 
 export function ProtectedRoute() {
-  const { loading, session } = useAuth();
+  const { loading, session, demoMode } = useAuth();
 
   if (loading) {
     return (
@@ -29,7 +29,7 @@ export function ProtectedRoute() {
     );
   }
 
-  if (!session) {
+  if (!session && !demoMode) {
     return <Navigate replace to="/welcome" />;
   }
 
@@ -37,7 +37,7 @@ export function ProtectedRoute() {
 }
 
 export function PublicOnlyRoute() {
-  const { loading, session } = useAuth();
+  const { loading, session, demoMode } = useAuth();
 
   if (loading) {
     return (
@@ -49,7 +49,7 @@ export function PublicOnlyRoute() {
     );
   }
 
-  if (session) {
+  if (session || demoMode) {
     return <Navigate replace to="/" />;
   }
 

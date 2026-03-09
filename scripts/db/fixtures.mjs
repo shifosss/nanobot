@@ -7,13 +7,6 @@ export const FIXTURE_ACCOUNTS = [
     email: "sample.ava.essential@nanobot.local",
     password: SAMPLE_PASSWORD,
     accountType: "individual",
-    subscription: {
-      planName: "Essential",
-      status: "active",
-      startedAt: "2026-03-01T09:00:00Z",
-      currentPeriodEnd: "2026-04-01T09:00:00Z",
-      nextPlanName: "Comprehensive",
-    },
     profiles: [
       {
         key: "ava-main",
@@ -22,8 +15,16 @@ export const FIXTURE_ACCOUNTS = [
         biologicalSex: "female",
         heightCm: 168.4,
         weightKg: 61.8,
+        subscription: {
+          planName: "Essential",
+          status: "active",
+          startedAt: "2026-03-01T09:00:00Z",
+          currentPeriodEnd: "2026-04-01T09:00:00Z",
+          nextPlanName: "Comprehensive",
+        },
         devices: [
           { code: "NB-SAMPLE-AVA-BA-001", typeName: "Blood Analyzer", firmwareVersion: "1.4.2" },
+          { code: "NB-SAMPLE-AVA-BA-002", typeName: "Blood Analyzer", firmwareVersion: "1.4.4" },
           { code: "NB-SAMPLE-AVA-SP-001", typeName: "SpO2 Monitor", firmwareVersion: "2.0.1" },
         ],
         readings: [
@@ -60,12 +61,6 @@ export const FIXTURE_ACCOUNTS = [
     email: "sample.liam.diabetes@nanobot.local",
     password: SAMPLE_PASSWORD,
     accountType: "individual",
-    subscription: {
-      planName: "Diabetes Care",
-      status: "active",
-      startedAt: "2026-03-02T10:00:00Z",
-      currentPeriodEnd: "2026-04-02T10:00:00Z",
-    },
     profiles: [
       {
         key: "liam-main",
@@ -74,6 +69,12 @@ export const FIXTURE_ACCOUNTS = [
         biologicalSex: "male",
         heightCm: 180.3,
         weightKg: 88.6,
+        subscription: {
+          planName: "Diabetes Care",
+          status: "active",
+          startedAt: "2026-03-02T10:00:00Z",
+          currentPeriodEnd: "2026-04-02T10:00:00Z",
+        },
         devices: [
           { code: "NB-SAMPLE-LIAM-BA-001", typeName: "Blood Analyzer", firmwareVersion: "1.4.0" },
         ],
@@ -102,12 +103,6 @@ export const FIXTURE_ACCOUNTS = [
     email: "sample.household.parent@nanobot.local",
     password: SAMPLE_PASSWORD,
     accountType: "parent",
-    subscription: {
-      planName: "Comprehensive",
-      status: "active",
-      startedAt: "2026-03-03T12:00:00Z",
-      currentPeriodEnd: "2026-04-03T12:00:00Z",
-    },
     profiles: [
       {
         key: "noah-child",
@@ -116,6 +111,12 @@ export const FIXTURE_ACCOUNTS = [
         biologicalSex: "male",
         heightCm: 123.1,
         weightKg: 24.7,
+        subscription: {
+          planName: "Child Care",
+          status: "active",
+          startedAt: "2026-03-03T12:00:00Z",
+          currentPeriodEnd: "2026-04-03T12:00:00Z",
+        },
         devices: [
           { code: "NB-SAMPLE-NOAH-BA-001", typeName: "Blood Analyzer", firmwareVersion: "1.3.7" },
           { code: "NB-SAMPLE-NOAH-SP-001", typeName: "SpO2 Monitor", firmwareVersion: "2.0.0" },
@@ -132,6 +133,12 @@ export const FIXTURE_ACCOUNTS = [
         biologicalSex: "female",
         heightCm: 160.4,
         weightKg: 68.1,
+        subscription: {
+          planName: "Elderly Care",
+          status: "active",
+          startedAt: "2026-03-03T12:00:00Z",
+          currentPeriodEnd: "2026-04-03T12:00:00Z",
+        },
         devices: [
           { code: "NB-SAMPLE-GRACE-BA-001", typeName: "Blood Analyzer", firmwareVersion: "1.4.1" },
           { code: "NB-SAMPLE-GRACE-SP-001", typeName: "SpO2 Monitor", firmwareVersion: "2.0.0" },
@@ -149,12 +156,6 @@ export const FIXTURE_ACCOUNTS = [
     email: "sample.sofia.womens@nanobot.local",
     password: SAMPLE_PASSWORD,
     accountType: "individual",
-    subscription: {
-      planName: "Women's Health",
-      status: "active",
-      startedAt: "2026-03-04T08:00:00Z",
-      currentPeriodEnd: "2026-04-04T08:00:00Z",
-    },
     profiles: [
       {
         key: "sofia-main",
@@ -163,6 +164,12 @@ export const FIXTURE_ACCOUNTS = [
         biologicalSex: "female",
         heightCm: 165.8,
         weightKg: 58.4,
+        subscription: {
+          planName: "Women's Health",
+          status: "active",
+          startedAt: "2026-03-04T08:00:00Z",
+          currentPeriodEnd: "2026-04-04T08:00:00Z",
+        },
         devices: [
           { code: "NB-SAMPLE-SOFIA-BA-001", typeName: "Blood Analyzer", firmwareVersion: "1.4.3" },
           { code: "NB-SAMPLE-SOFIA-HT-001", typeName: "Hormone Tracker", firmwareVersion: "1.1.0" },

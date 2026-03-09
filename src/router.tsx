@@ -4,10 +4,13 @@ import {
   ProtectedRoute,
   PublicOnlyRoute,
 } from "@/components/router-views";
+import { AllSetPage } from "@/pages/all-set";
 import { DashboardPage } from "@/pages/dashboard";
+import { DetailPage } from "@/pages/detail";
+import { InfoCheckPage } from "@/pages/info-check";
+import { LinkAccountPage } from "@/pages/link-account";
 import { NotFoundPage } from "@/pages/not-found";
-import { PairDevicePage } from "@/pages/pair-device";
-import { SignInPage } from "@/pages/sign-in";
+import { ProfilePage } from "@/pages/profile";
 import { WelcomePage } from "@/pages/welcome";
 
 export const router = createBrowserRouter([
@@ -17,20 +20,22 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <ProtectedRoute />,
-        children: [{ index: true, element: <DashboardPage /> }],
+        children: [
+          { index: true, element: <DashboardPage /> },
+          { path: "detail", element: <DetailPage /> },
+          { path: "profile", element: <ProfilePage /> },
+        ],
       },
       {
         element: <PublicOnlyRoute />,
         children: [
           { path: "welcome", element: <WelcomePage /> },
-          { path: "sign-in", element: <SignInPage /> },
+          { path: "info-check", element: <InfoCheckPage /> },
+          { path: "link-account", element: <LinkAccountPage /> },
         ],
       },
-      { path: "pair", element: <PairDevicePage /> },
-      {
-        path: "*",
-        element: <NotFoundPage />,
-      },
+      { path: "all-set", element: <AllSetPage /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);

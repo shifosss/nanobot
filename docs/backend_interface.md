@@ -25,8 +25,8 @@ This document describes the Supabase backend contract implemented for Nanobot.
   - Use for profile switcher, profile settings, and ownership-scoped filtering.
 - `plans`
   - Use for plan picker and plan metadata.
-- `account_subscriptions`
-  - Use for plan selection and current billing-cycle state in the prototype.
+- `profile_subscriptions`
+  - Use for per-profile plan selection and billing-cycle state in the prototype.
 - `devices`
   - Read-only from the client. Binding must go through `bind_device`.
 - `device_types`, `plan_device_types`
@@ -48,13 +48,15 @@ This document describes the Supabase backend contract implemented for Nanobot.
 
 ## Views
 
-### `current_account_subscription`
+### `current_profile_subscription`
 
-One row per subscription record with denormalized plan names.
+One row per profile subscription with denormalized plan names.
 
 Columns:
 - `id`
+- `profile_id`
 - `account_id`
+- `profile_display_name`
 - `plan_id`
 - `plan_name`
 - `next_plan_id`
@@ -69,9 +71,9 @@ Typical query:
 
 ```ts
 const { data } = await supabase
-  .from("current_account_subscription")
+  .from("current_profile_subscription")
   .select("*")
-  .eq("account_id", session.user.id)
+  .eq("profile_id", profileId)
   .eq("status", "active")
   .maybeSingle();
 ```
@@ -102,6 +104,7 @@ Behavior:
 - rejects already-bound devices
 - verifies the profile’s active plan supports the device type
 - binds the device permanently
+- allows multiple robots on one profile, including multiple robots of the same device type
 
 Example:
 
@@ -176,7 +179,7 @@ Implementation note:
 
 Safe direct writes from the frontend in the prototype:
 - `profiles`
-- `account_subscriptions`
+- `profile_subscriptions`
 - `profile_reference_ranges`
 - `biomarker_readings`
 - `export_requests`
@@ -269,8 +272,8 @@ const channel = supabase
 1. Sign up or sign in with Supabase Auth.
 2. Read `accounts` for `account_type`.
 3. Create the first `profiles` row if none exists.
-4. Read `plans` and create an `account_subscriptions` row.
-5. Read `profile_device_summary` and call `bind_device` if a device is not yet bound.
+4. Read `plans` and create a `profile_subscriptions` row for that profile.
+5. Read `profile_device_summary` and call `bind_device` for one or more devices that belong to that profile.
 6. Read biomarker catalogs and subscribe to realtime readings.
 
 ## Current Seed Scope

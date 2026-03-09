@@ -8,8 +8,9 @@ This repo includes a repeatable Supabase fixture and verification harness under 
 - `accounts` mirror trigger behavior
 - individual and parent account ownership rules
 - profile creation and individual-profile limit enforcement
-- account subscriptions and `current_account_subscription`
+- profile subscriptions and `current_profile_subscription`
 - device provisioning, plan-compatible binding, and rebind rejection
+- same-type multi-robot pairing on one profile
 - direct frontend-safe writes for readings, profile ranges, and export requests
 - biomarker questions and dismissal-rule creation through RPC
 - IDFW physical-only, mental-only, and combined flows
@@ -26,8 +27,8 @@ This repo includes a repeatable Supabase fixture and verification harness under 
   - individual account on Diabetes Care
   - elevated glucose readings, personalized range, biomarker question workflow
 - `sample.household.parent@nanobot.local`
-  - parent account on Comprehensive
-  - two owned profiles to exercise multi-profile access
+  - parent account with Child Care and Elderly Care profiles
+  - two owned profiles to exercise multi-profile access and per-profile plan divergence
 - `sample.sofia.womens@nanobot.local`
   - individual account on Women's Health
   - hormone-context readings and IDFW mental/combined sessions

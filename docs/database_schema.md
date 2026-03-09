@@ -6,7 +6,9 @@
 - **Sensation types** for IDFW physical symptoms are fixed: stitchy, pain, numbness.
 - **Body locations** are coarse regions (not left/right split). Adjust as needed.
 - **Plan names** are placeholders. The structure supports arbitrary plans.
-- **Device binding** is permanent and at the profile level. One device → one profile, never reassigned.
+- **Accounts mirror Supabase Auth users.** `public.accounts.id` is the same UUID as `auth.users.id`; auth is canonical.
+- **Account ownership is household-style.** One account may own many profiles. In product terms, `account_type = 'individual'` is intended for a single monitored person and `account_type = 'parent'` for multi-profile households, but the live database does not currently enforce a max-one-profile rule for `individual`.
+- **Device binding** is permanent and at the profile level after first pairing. A device starts unbound (`profile_id` is `NULL`), then can be paired to exactly one profile and never reassigned. A profile may have many devices, including multiple devices of the same type.
 - **All numeric biomarker values** are stored as `numeric` (arbitrary precision decimal). No biomarker returns non-numeric data.
 
 ---
@@ -17,10 +19,10 @@
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| id | uuid | PK, default `gen_random_uuid()` | |
+| id | uuid | PK, FK → auth.users(id) | Mirrored from Supabase Auth |
 | email | text | UNIQUE, NOT NULL | Login credential |
-| password_hash | text | NOT NULL | Managed by Supabase Auth in practice |
-| account_type | text | NOT NULL, CHECK IN ('individual', 'parent') | Individual = 1 profile; Parent = multiple profiles |
+| password_hash | text | NOT NULL | Placeholder column; defaults to `managed_by_supabase_auth` and is not used for real auth |
+| account_type | text | NOT NULL, CHECK IN ('individual', 'parent') | Use `parent` for multi-profile households |
 | created_at | timestamptz | NOT NULL, default `now()` | |
 | updated_at | timestamptz | NOT NULL, default `now()` | |
 
@@ -30,7 +32,7 @@
 
 ### `profiles`
 
-One per monitored person. Individual accounts have exactly 1. Parent accounts have ≥1.
+One per monitored person. An account may own many profiles. The intended UX is 1 profile for `individual` accounts and 1+ profiles for `parent` accounts, but the live schema does not currently enforce the max-one-profile rule at the database layer.
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
@@ -45,7 +47,7 @@ One per monitored person. Individual accounts have exactly 1. Parent accounts ha
 | created_at | timestamptz | NOT NULL, default `now()` | |
 | updated_at | timestamptz | NOT NULL, default `now()` | |
 
-**Constraint**: For `account_type = 'individual'`, enforce max 1 profile per account via application logic or trigger.
+**Current status**: No database trigger currently enforces max 1 profile for `account_type = 'individual'`. If that rule becomes strict, add a trigger or partial-constraint strategy later.
 
 ---
 
@@ -75,13 +77,13 @@ One per monitored person. Individual accounts have exactly 1. Parent accounts ha
 
 ---
 
-### `account_subscriptions`
+### `profile_subscriptions`
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | id | uuid | PK | |
-| account_id | uuid | FK → accounts(id) ON DELETE CASCADE, NOT NULL | |
-| plan_id | uuid | FK → plans(id), NOT NULL | Currently active plan |
+| profile_id | uuid | FK → profiles(id) ON DELETE CASCADE, NOT NULL | |
+| plan_id | uuid | FK → plans(id), NOT NULL | Currently active plan for this profile |
 | next_plan_id | uuid | FK → plans(id), NULL | If user upgraded mid-cycle, this plan takes effect at `current_period_end` |
 | status | text | NOT NULL, CHECK IN ('active', 'cancelled', 'expired', 'pending') | |
 | started_at | timestamptz | NOT NULL | |
@@ -89,7 +91,7 @@ One per monitored person. Individual accounts have exactly 1. Parent accounts ha
 | cancelled_at | timestamptz | NULL | |
 | created_at | timestamptz | NOT NULL, default `now()` | |
 
-**Constraint**: One active subscription per account at a time (enforced via partial unique index on `account_id WHERE status = 'active'`).
+**Constraint**: One active subscription per profile at a time (enforced via partial unique index on `profile_id WHERE status = 'active'`).
 
 **Upgrade flow**: When user upgrades mid-cycle, set `next_plan_id`. At `current_period_end`, a scheduled job copies `next_plan_id` → `plan_id`, sets `next_plan_id` to NULL, and advances `current_period_end` by 1 month.
 
@@ -126,14 +128,12 @@ Physical robot units. **Once bound, never reassigned.**
 | id | uuid | PK | |
 | device_code | text | UNIQUE, NOT NULL | Printed on the robot; user enters this to bind |
 | device_type_id | smallint | FK → device_types(id), NOT NULL | |
-| profile_id | uuid | FK → profiles(id), UNIQUE, NOT NULL | One device ↔ one profile, permanent |
+| profile_id | uuid | FK → profiles(id), NULL until first bind | One device ↔ one profile after pairing; never reassigned |
 | activated_at | timestamptz | NOT NULL, default `now()` | |
 | firmware_version | text | NULL | For future OTA updates |
 
 **UNIQUE on `device_code`** ensures globally unique devices.
-**UNIQUE on `profile_id` per device_type_id** — actually, a profile could have multiple devices of different types. So UNIQUE should be on `(profile_id, device_type_id)` if we want at most one robot of each type per profile, or just leave `device_code` as the unique constraint if multiple of the same type is allowed.
-
-**Recommendation**: Unique constraint on `device_code` only. A profile can have multiple devices.
+**Recommendation**: Unique constraint on `device_code` only. A profile can have multiple devices, including multiple robots of the same type.
 
 ---
 
@@ -251,21 +251,22 @@ Personalized overrides, built over time from the user's own data (95th percentil
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | id | bigint | PK, generated always as identity | uuid is 16 bytes vs bigint 8 bytes; matters at this scale |
-| profile_id | uuid | NOT NULL | |
-| biomarker_id | smallint | NOT NULL | |
-| device_id | uuid | NOT NULL | Which robot produced this reading |
+| profile_id | uuid | FK → profiles(id) ON DELETE CASCADE, NOT NULL | |
+| biomarker_id | smallint | FK → biomarkers(id) ON DELETE CASCADE, NOT NULL | |
+| device_id | uuid | FK → devices(id) ON DELETE CASCADE, NOT NULL | Which robot produced this reading |
 | value | numeric | NOT NULL | |
+| context | text | NOT NULL, default `default` | Same context domain as reference ranges: e.g. `fasting`, `AM`, `luteal_mid` |
 | recorded_at | timestamptz | NOT NULL | Timestamp of measurement |
 | created_at | timestamptz | NOT NULL, default `now()` | When row was inserted |
 
 **Indexes:**
 
-- `(profile_id, biomarker_id, recorded_at DESC)` — primary query pattern for detail page charts
+- `(profile_id, biomarker_id, context, recorded_at DESC)` — primary query pattern for detail page charts
 - `(profile_id, recorded_at DESC)` — for home page summary (latest readings across all biomarkers)
 
 **Scaling note:** For production, enable TimescaleDB extension (available in Supabase) and convert this to a hypertable partitioned on `recorded_at`. This gives automatic time-based partitioning, compression, and retention policies. For the prototype, a standard table with the above indexes is sufficient.
 
-**Foreign keys on profile_id, biomarker_id, device_id are intentionally omitted at scale** to avoid write overhead. Enforce via application logic or add them for the prototype and remove later.
+**Current schema keeps foreign keys on `profile_id`, `biomarker_id`, and `device_id`** for integrity. If ingestion volume eventually makes them too expensive, revisit only after measuring real write pressure.
 
 ---
 
@@ -513,7 +514,7 @@ Generated after user completes the IDFW flow.
 
 ```
 accounts 1──* profiles
-accounts 1──1 account_subscriptions *──1 plans
+profiles 1──* profile_subscriptions *──1 plans
 plans *──* device_types        (via plan_device_types)
 plans *──* biomarkers           (via plan_biomarkers)
 profiles 1──* devices *──1 device_types
@@ -550,5 +551,6 @@ idfw_sessions 1──1 idfw_reports
 
 1. **IDFW sessions can have both physical AND mental symptoms.** The `type` column is replaced with `has_physical` / `has_mental` booleans.
 2. **Multiple sensation types per body location are allowed.** UNIQUE constraint is on `(session_id, body_location_id, sensation_type_id)`. Fixed sensation types: stitchy, pain, numbness.
-3. **Subscription upgrades are deferred.** `next_plan_id` holds the pending upgrade; a scheduled job applies it at `current_period_end`. Old plan price continues until then.
-4. **Profile deletion is hard delete.** All profile-scoped FKs use `ON DELETE CASCADE`. When a profile is deleted, all readings, questions, dismissal rules, IDFW sessions (and their symptoms/reports), and export requests are permanently removed.
+3. **Subscriptions are profile-scoped.** Each monitored person carries their own active plan; sibling profiles under one account may have different plans.
+4. **Subscription upgrades are deferred.** `next_plan_id` holds the pending upgrade; a scheduled job applies it at `current_period_end`. Old plan price continues until then.
+5. **Profile deletion is hard delete.** All profile-scoped FKs use `ON DELETE CASCADE`. When a profile is deleted, all readings, questions, dismissal rules, IDFW sessions (and their symptoms/reports), export requests, and profile subscriptions are permanently removed.

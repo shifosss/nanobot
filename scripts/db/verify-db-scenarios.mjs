@@ -97,29 +97,72 @@ async function verifyAccountAndProfileOwnership(config, fixture, otherFixture) {
 async function verifySubscriptionsAndViews(config, fixture) {
   const signedIn = await signInUser(config, fixture.email, fixture.password);
 
-  const subscription = await fetchSingle(
-    signedIn.client
-      .from("current_account_subscription")
-      .select("plan_name, next_plan_name, status")
-      .eq("account_id", fixture.accountId),
-    `subscription view for ${fixture.email}`,
-  );
-  assert.equal(subscription.plan_name, fixture.subscription.planName);
-  assert.equal(subscription.status, fixture.subscription.status);
+  const { data: subscriptions, error: subscriptionError } = await signedIn.client
+    .from("current_profile_subscription")
+    .select("profile_id, profile_display_name, plan_name, next_plan_name, status");
+  if (subscriptionError) {
+    throw subscriptionError;
+  }
 
-  if (fixture.subscription.nextPlanName) {
-    assert.equal(subscription.next_plan_name, fixture.subscription.nextPlanName);
+  assert.equal(subscriptions.length, fixture.profiles.length);
+
+  for (const profileFixture of fixture.profiles) {
+    const liveProfile = fixture.createdProfiles.find(
+      (candidate) => candidate.display_name === profileFixture.displayName,
+    );
+    assert(liveProfile, `Missing live profile for ${profileFixture.displayName}`);
+
+    const subscription = subscriptions.find(
+      (row) => row.profile_id === liveProfile.id,
+    );
+    assert(subscription, `Missing subscription for ${profileFixture.displayName}`);
+    assert.equal(subscription.profile_display_name, profileFixture.displayName);
+    assert.equal(subscription.plan_name, profileFixture.subscription.planName);
+    assert.equal(subscription.status, profileFixture.subscription.status);
+
+    if (profileFixture.subscription.nextPlanName) {
+      assert.equal(
+        subscription.next_plan_name,
+        profileFixture.subscription.nextPlanName,
+      );
+    }
   }
 
   const { data: devices, error } = await signedIn.client
     .from("profile_device_summary")
-    .select("profile_display_name, device_code, device_type_name");
+    .select("profile_display_name, device_code, device_type_name, profile_id");
   if (error) {
     throw error;
   }
 
   const expectedDeviceCount = fixture.profiles.reduce((count, profile) => count + profile.devices.length, 0);
   assert.equal(devices.length, expectedDeviceCount);
+
+  for (const profileFixture of fixture.profiles) {
+    const liveProfile = fixture.createdProfiles.find(
+      (candidate) => candidate.display_name === profileFixture.displayName,
+    );
+    const profileDevices = devices.filter((device) => device.profile_id === liveProfile.id);
+
+    const expectedByType = new Map();
+    for (const device of profileFixture.devices) {
+      expectedByType.set(
+        device.typeName,
+        (expectedByType.get(device.typeName) ?? 0) + 1,
+      );
+    }
+
+    for (const [typeName, expectedCount] of expectedByType.entries()) {
+      const actualCount = profileDevices.filter(
+        (device) => device.device_type_name === typeName,
+      ).length;
+      assert.equal(
+        actualCount,
+        expectedCount,
+        `${profileFixture.displayName} should have ${expectedCount} ${typeName} devices.`,
+      );
+    }
+  }
 }
 
 async function verifyParentAccountAccess(config) {
@@ -140,6 +183,19 @@ async function verifyParentAccountAccess(config) {
     profiles.map((profile) => profile.display_name),
     ["Grace Kim", "Noah Kim"],
   );
+
+  const { data: subscriptions, error: subscriptionError } = await signedIn.client
+    .from("current_profile_subscription")
+    .select("profile_display_name, plan_name")
+    .order("profile_display_name");
+  if (subscriptionError) {
+    throw subscriptionError;
+  }
+
+  assert.deepEqual(subscriptions, [
+    { profile_display_name: "Grace Kim", plan_name: "Elderly Care" },
+    { profile_display_name: "Noah Kim", plan_name: "Child Care" },
+  ]);
 }
 
 async function verifyReadingsAndRanges(config, reference, fixture) {

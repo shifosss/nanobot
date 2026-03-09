@@ -13,16 +13,16 @@ import {
 } from "./common.mjs";
 import { FIXTURE_ACCOUNTS, SAMPLE_NAMESPACE } from "./fixtures.mjs";
 
-async function insertSubscription(userClient, reference, fixture) {
-  const { error } = await userClient.from("account_subscriptions").insert({
-    account_id: fixture.accountId,
-    plan_id: reference.planIdsByName.get(fixture.subscription.planName),
-    next_plan_id: fixture.subscription.nextPlanName
-      ? reference.planIdsByName.get(fixture.subscription.nextPlanName)
+async function insertProfileSubscription(userClient, reference, profileId, subscription) {
+  const { error } = await userClient.from("profile_subscriptions").insert({
+    profile_id: profileId,
+    plan_id: reference.planIdsByName.get(subscription.planName),
+    next_plan_id: subscription.nextPlanName
+      ? reference.planIdsByName.get(subscription.nextPlanName)
       : null,
-    status: fixture.subscription.status,
-    started_at: fixture.subscription.startedAt,
-    current_period_end: fixture.subscription.currentPeriodEnd,
+    status: subscription.status,
+    started_at: subscription.startedAt,
+    current_period_end: subscription.currentPeriodEnd,
   });
 
   if (error) {
@@ -54,6 +54,13 @@ async function createProfilesAndBindDevices(service, userClient, reference, fixt
       ...profileFixture,
       ...profileRows[0],
     };
+
+    await insertProfileSubscription(
+      userClient,
+      reference,
+      createdProfile.id,
+      profileFixture.subscription,
+    );
 
     for (const deviceFixture of profileFixture.devices) {
       const { error: deviceError } = await service.from("devices").insert({
@@ -307,7 +314,6 @@ async function main() {
     );
 
     fixture.accountId = account.id;
-    await insertSubscription(signedIn.client, reference, fixture);
     fixture.createdProfiles = await createProfilesAndBindDevices(
       service,
       signedIn.client,
