@@ -1,50 +1,44 @@
-# Welcome to your Expo app 👋
+# Nanobot Web App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This repo now uses a browser-first React + Vite + Tailwind setup so Figma-generated web code can be dropped in without going through React Native or Expo compatibility layers.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- React 19
+- Vite
+- Tailwind CSS
+- React Router
+- Supabase Web SDK
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Commands
 
 ```bash
-npm run reset-project
+npm install
+npm run dev
+npm run build
+npm run lint
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Environment
 
-## Learn more
+Create `.env` with:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+Database_Project_URL=your-project-url
+Database_Public_Anon_Key=your-public-anon-key
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Only the public anon key belongs in the browser bundle. Do not expose Supabase service-role keys in client-side code.
 
-## Join the community
+## Structure
 
-Join our community of developers creating universal apps.
+```text
+src/
+  components/
+  pages/
+  providers/
+  lib/
+  styles/
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+`src/styles/index.css` is the main Tailwind entry point and is intended to match the way Figma-exported web code expects global CSS to work.
