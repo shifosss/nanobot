@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthMode = "sign-in" | "sign-up";
 
 export function SignInPage() {
-  const [mode, setMode] = useState<AuthMode>("sign-in");
+  const location = useLocation();
+  const initialMode =
+    (location.state as { mode?: AuthMode } | null)?.mode ?? "sign-in";
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);

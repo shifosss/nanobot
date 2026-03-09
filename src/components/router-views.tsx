@@ -30,7 +30,7 @@ export function ProtectedRoute() {
   }
 
   if (!session) {
-    return <Navigate replace to="/sign-in" />;
+    return <Navigate replace to="/welcome" />;
   }
 
   return <Outlet />;

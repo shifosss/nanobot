@@ -6,7 +6,9 @@ import {
 } from "@/components/router-views";
 import { DashboardPage } from "@/pages/dashboard";
 import { NotFoundPage } from "@/pages/not-found";
+import { PairDevicePage } from "@/pages/pair-device";
 import { SignInPage } from "@/pages/sign-in";
+import { WelcomePage } from "@/pages/welcome";
 
 export const router = createBrowserRouter([
   {
@@ -19,8 +21,12 @@ export const router = createBrowserRouter([
       },
       {
         element: <PublicOnlyRoute />,
-        children: [{ path: "sign-in", element: <SignInPage /> }],
+        children: [
+          { path: "welcome", element: <WelcomePage /> },
+          { path: "sign-in", element: <SignInPage /> },
+        ],
       },
+      { path: "pair", element: <PairDevicePage /> },
       {
         path: "*",
         element: <NotFoundPage />,

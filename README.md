@@ -19,6 +19,28 @@ npm run build
 npm run lint
 ```
 
+## Database Sample Data And Verification
+
+The repo includes a data-only Supabase harness for realistic sample users, profiles, devices, readings, symptoms, exports, and RLS checks.
+
+Local commands:
+
+```bash
+npm run db:sample:load:local
+npm run db:sample:verify:local
+npm run db:sample:cleanup:local
+```
+
+Hosted commands:
+
+```bash
+npm run db:sample:load:hosted
+npm run db:sample:verify:hosted
+npm run db:sample:cleanup:hosted
+```
+
+For one-shot runs, use `npm run db:sample:cycle:local` or `npm run db:sample:cycle:hosted`.
+
 ## Environment
 
 Create `.env` with:
@@ -29,6 +51,14 @@ Database_Public_Anon_Key=your-public-anon-key
 ```
 
 Only the public anon key belongs in the browser bundle. Do not expose Supabase service-role keys in client-side code.
+
+For hosted sample-data scripts, keep admin-only values in `.env.local`:
+
+```bash
+Database_Service_Role_Key=your-service-role-key
+```
+
+The sample-data harness never changes the schema. It only inserts and removes test data.
 
 ## Structure
 
