@@ -7,6 +7,7 @@ import {
 import { AllSetPage } from "@/pages/all-set";
 import { DashboardPage } from "@/pages/dashboard";
 import { DetailPage } from "@/pages/detail";
+import { IdfwPage } from "@/pages/idfw";
 import { InfoCheckPage } from "@/pages/info-check";
 import { LinkAccountPage } from "@/pages/link-account";
 import { NotFoundPage } from "@/pages/not-found";
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: "detail", element: <DetailPage /> },
+          { path: "idfw", element: <IdfwPage /> },
           { path: "profile", element: <ProfilePage /> },
         ],
       },

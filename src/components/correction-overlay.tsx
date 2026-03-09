@@ -1,6 +1,9 @@
 import { useState } from "react";
+import type { CorrectionPromptData } from "@/data/biomarker-categories";
+import { MetricTrendChart } from "@/components/metric-trend-chart";
 
 interface CorrectionOverlayProps {
+  prompt?: CorrectionPromptData;
   onClose: () => void;
   onDismiss: () => void;
 }
@@ -21,7 +24,26 @@ function BackChevron() {
   );
 }
 
-export function CorrectionOverlay({ onClose, onDismiss }: CorrectionOverlayProps) {
+const DEFAULT_PROMPT: CorrectionPromptData = {
+  biomarkerLabel: "Cortisol (PM)",
+  timestampLabel: "02/28, 8:00 pm",
+  question: "Did something stressful happen around that time?",
+  series: [5.4, 5.7, 6.1, 6.8, 7.6, 8.9, 8.2, 7.1, 6.3],
+  highlightedIndex: 5,
+  rangeLow: 3,
+  rangeHigh: 10,
+  unit: "ug/dL",
+  yesLabel: "Yes, it was a stressful evening.",
+  noLabel: "No, nothing unusual happened.",
+  unknownLabel: "I do not remember.",
+  answerSummary: "Yes, it was a stressful evening.",
+  reassuranceTitle: "That makes sense.",
+  reassuranceBody:
+    "Your response explains the temporary cortisol rise. The rest of the evening curve returned toward your normal range.",
+  completionNote: "We used your answer to keep future evening alerts more accurate.",
+};
+
+export function CorrectionOverlay({ prompt = DEFAULT_PROMPT, onClose, onDismiss }: CorrectionOverlayProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [answer, setAnswer] = useState<string | null>(null);
 
@@ -65,12 +87,21 @@ export function CorrectionOverlay({ onClose, onDismiss }: CorrectionOverlayProps
             </button>
           </div>
           <p className="text-center text-[12px] font-medium leading-[16px] text-nano-sub-text">
-            Unusual peak in Blood Sugar
+            Unusual pattern in {prompt.biomarkerLabel}
           </p>
         </div>
 
         {/* Content */}
-        {step === 1 ? <Step1Content onAnswer={handleAnswer} /> : <Step2Content answer={answer} onDismiss={onDismiss} onBack={() => setStep(1)} />}
+        {step === 1 ? (
+          <Step1Content prompt={prompt} onAnswer={handleAnswer} />
+        ) : (
+          <Step2Content
+            prompt={prompt}
+            answer={answer}
+            onDismiss={onDismiss}
+            onBack={() => setStep(1)}
+          />
+        )}
       </div>
     </>
   );
@@ -78,7 +109,13 @@ export function CorrectionOverlay({ onClose, onDismiss }: CorrectionOverlayProps
 
 /* ---- Step 1 ---- */
 
-function Step1Content({ onAnswer }: { onAnswer: (response: string) => void }) {
+function Step1Content({
+  prompt,
+  onAnswer,
+}: {
+  prompt: CorrectionPromptData;
+  onAnswer: (response: string) => void;
+}) {
   return (
     <>
       <div className="flex flex-col items-center px-[16px] py-[16px]">
@@ -86,19 +123,23 @@ function Step1Content({ onAnswer }: { onAnswer: (response: string) => void }) {
         <div className="flex w-[361px] flex-col gap-[16px] rounded-[24px] bg-white p-[16px]">
           <div className="flex flex-col gap-[4px]">
             <p className="text-[17px] leading-[22px] tracking-[-0.43px] text-black">
-              Your blood sugar <span className="text-nano-error">raised</span> at
+              Your {prompt.biomarkerLabel} <span className="text-nano-error">changed</span> at
             </p>
             <p className="text-[34px] leading-[41px] tracking-[0.4px] text-black">
-              03/04, 4:30 am
+              {prompt.timestampLabel}
             </p>
             <p className="text-[20px] font-semibold leading-[25px] tracking-[-0.45px] text-black">
-              Did you eat anything at that time?
+              {prompt.question}
             </p>
           </div>
-          {/* Graph placeholder */}
-          <div className="flex h-[163px] w-full items-center justify-center rounded-[16px] bg-nano-muted">
-            <span className="text-[17px] font-semibold tracking-[-0.43px] text-black/30">Graph</span>
-          </div>
+          <MetricTrendChart
+            values={prompt.series}
+            rangeLow={prompt.rangeLow}
+            rangeHigh={prompt.rangeHigh}
+            highlightedIndex={prompt.highlightedIndex}
+            height={163}
+            color="#f59e0b"
+          />
         </div>
       </div>
 
@@ -107,29 +148,29 @@ function Step1Content({ onAnswer }: { onAnswer: (response: string) => void }) {
         <div className="mx-auto flex w-[335px] gap-[13px]">
           <button
             type="button"
-            onClick={() => onAnswer("\u{1F97A} Yes, I did eat snack.")}
+            onClick={() => onAnswer(prompt.yesLabel)}
             className="flex h-[45px] w-[157px] items-center justify-center rounded-[14px] border border-nano-green bg-[rgba(142,190,9,0.28)]"
           >
             <span className="text-[15px] font-semibold leading-[20px] tracking-[-0.23px] text-black">
-              🍎 Yes, I did
+              Yes
             </span>
           </button>
           <button
             type="button"
-            onClick={() => onAnswer("\u{1F634} No, I did not eat anything.")}
+            onClick={() => onAnswer(prompt.noLabel)}
             className="flex h-[45px] w-[157px] items-center justify-center rounded-[14px] border border-[#d08700] bg-[rgba(208,135,0,0.2)]"
           >
             <span className="text-[15px] font-semibold leading-[20px] tracking-[-0.23px] text-black">
-              😴 No, I did not
+              No
             </span>
           </button>
         </div>
         <button
           type="button"
-          onClick={() => onAnswer("\u{1F914} I don't remember.")}
+          onClick={() => onAnswer(prompt.unknownLabel)}
           className="mt-[12px] w-full text-center text-[17px] leading-[22px] tracking-[-0.43px] text-nano-link"
         >
-          Don't remember
+          Not sure
         </button>
       </div>
     </>
@@ -139,10 +180,12 @@ function Step1Content({ onAnswer }: { onAnswer: (response: string) => void }) {
 /* ---- Step 2 ---- */
 
 function Step2Content({
+  prompt,
   answer,
   onDismiss,
   onBack,
 }: {
+  prompt: CorrectionPromptData;
   answer: string | null;
   onDismiss: () => void;
   onBack: () => void;
@@ -153,10 +196,10 @@ function Step2Content({
         {/* Left bubble — question */}
         <div className="w-[262px] rounded-[24px] border border-[rgba(0,0,0,0.07)] bg-white p-[16px]">
           <p className="text-[17px] leading-[22px] tracking-[-0.43px] text-black">
-            Your blood sugar <span className="text-nano-error">raised</span> at
+            Your {prompt.biomarkerLabel} <span className="text-nano-error">changed</span> at
           </p>
           <p className="text-[17px] leading-[22px] tracking-[-0.43px] text-black">
-            03/04, 4:30 am
+            {prompt.timestampLabel}
           </p>
         </div>
 
@@ -164,7 +207,7 @@ function Step2Content({
         <div className="flex justify-end">
           <div className="rounded-[24px] border border-[rgba(0,0,0,0.07)] bg-[#dfedba] p-[16px]">
             <p className="text-[17px] leading-[22px] tracking-[-0.43px] text-black">
-              {answer}
+              {answer ?? prompt.answerSummary}
             </p>
           </div>
         </div>
@@ -175,19 +218,16 @@ function Step2Content({
         {/* Left bubble — reassurance */}
         <div className="w-[262px] rounded-[24px] border border-[rgba(0,0,0,0.07)] bg-white p-[16px]">
           <p className="text-[17px] leading-[22px] tracking-[-0.43px] text-black">
-            No Worry!
+            {prompt.reassuranceTitle}
           </p>
           <p className="text-[20px] font-semibold leading-[25px] tracking-[-0.45px] text-black">
-            Your response proves that the data is correct.{" "}
-          </p>
-          <p className="text-[17px] leading-[22px] tracking-[-0.43px] text-black">
-            Otherwise it'd be a big issue!
+            {prompt.reassuranceBody}
           </p>
         </div>
 
         {/* Caption */}
         <p className="px-[16px] text-[12px] leading-[16px] text-nano-sub-text">
-          We've successfully corrected your data.
+          {prompt.completionNote}
         </p>
       </div>
 

@@ -89,7 +89,7 @@ function MenuRow({
         <div className="flex size-[40px] shrink-0 items-center justify-center rounded-full">
           {icon}
         </div>
-        <span className="text-[17px] leading-[22px] tracking-[-0.43px] text-nano-heading">
+        <span className="text-[17px] leading-[22px] tracking-[-0.43px] text-nano-black">
           {label}
         </span>
       </div>
@@ -125,12 +125,12 @@ export function ProfilePage() {
 
   return (
     <div
-      className="fixed inset-0 overflow-y-auto bg-nano-surface"
+      className="fixed inset-0 overflow-y-auto bg-nano-new-white"
       style={{ colorScheme: "light" }}
     >
       <div className="relative mx-auto max-w-[393px] font-sf">
         {/* Absolute grey background layer */}
-        <div className="absolute left-0 top-0 h-[284px] w-full bg-[#e7e7e7]" />
+        <div className="absolute left-0 top-0 h-[284px] w-full bg-nano-muted" />
 
         {/* Body — single flex column matching Figma auto layout */}
         <div className="relative flex flex-col gap-[16px] items-start pt-[24px] px-[24px]">
@@ -148,10 +148,10 @@ export function ProfilePage() {
 
           {/* Avatar + Name */}
           <div className="flex flex-col gap-[9px] items-center w-full shrink-0">
-            <div className="flex size-[77px] items-center justify-center rounded-full bg-[rgba(58,207,210,0.2)]">
+            <div className="flex size-[77px] items-center justify-center rounded-full bg-nano-blue-light">
               <UserIcon />
             </div>
-            <p className="w-full text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-black">
+            <p className="w-full text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-nano-black">
               {displayName}
             </p>
           </div>
@@ -187,7 +187,7 @@ export function ProfilePage() {
           <div className="h-[2px] w-[345px] shrink-0" />
 
           {/* Version */}
-          <p className="w-full shrink-0 text-center font-inter text-[14px] leading-[20px] tracking-[-0.15px] text-[#99a1af]">
+          <p className="w-full shrink-0 text-center font-inter text-[14px] leading-[20px] tracking-[-0.15px] text-nano-shadow">
             Version Alpha 0.0.1
           </p>
 

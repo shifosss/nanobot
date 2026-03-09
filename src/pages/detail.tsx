@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CATEGORIES } from "@/data/biomarker-categories";
-import type { BiomarkerItem, CategoryData } from "@/data/biomarker-categories";
+import type { BiomarkerItem, CategoryData, CorrectionPromptData } from "@/data/biomarker-categories";
 import { CorrectionOverlay } from "@/components/correction-overlay";
+import { MetricTrendChart } from "@/components/metric-trend-chart";
 
 const TIME_PERIODS = ["Now", "D", "W", "M", "6M", "Y"] as const;
 
@@ -154,16 +155,6 @@ function BiomarkerStats({ biomarker }: { biomarker: BiomarkerItem }) {
   );
 }
 
-function GraphPlaceholder() {
-  return (
-    <div className="flex h-[174px] w-[345px] items-center justify-center bg-nano-muted">
-      <span className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px] text-black/30">
-        Graph
-      </span>
-    </div>
-  );
-}
-
 function StatusCard({ title, message }: { title: string; message: string }) {
   return (
     <div className="flex w-full items-center gap-[16px] rounded-[16px] border-[0.612px] border-nano-border bg-white p-[16px]">
@@ -182,7 +173,13 @@ function StatusCard({ title, message }: { title: string; message: string }) {
   );
 }
 
-function UnusualCard({ onClick }: { onClick: () => void }) {
+function UnusualCard({
+  prompt,
+  onClick,
+}: {
+  prompt: CorrectionPromptData;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -191,10 +188,10 @@ function UnusualCard({ onClick }: { onClick: () => void }) {
     >
       <div className="w-[222px]">
         <p className="text-[15px] font-semibold leading-[20px] tracking-[-0.23px] text-[#db6e15]">
-          Something unusual
+          {prompt.biomarkerLabel} looks unusual
         </p>
         <p className="text-[12px] leading-[16px] text-nano-sub-text">
-          We found some unusual data. Answer our question and help us correct them.
+          {prompt.question}
         </p>
         <div className="mt-2 inline-flex h-[28px] items-center justify-center rounded-[50px] border border-[rgba(38,38,38,0.1)] bg-[#cd5f04] px-[16px]">
           <span className="text-[15px] leading-[20px] tracking-[-0.23px] text-white">
@@ -360,13 +357,19 @@ export function DetailPage() {
           {activeData.biomarkers.map((biomarker, index) => (
             <div key={biomarker.id} className="flex flex-col gap-[16px]">
               <BiomarkerStats biomarker={biomarker} />
-              <GraphPlaceholder />
+              <MetricTrendChart
+                values={biomarker.series}
+                labels={biomarker.chartLabels}
+                rangeLow={biomarker.rangeLow}
+                rangeHigh={biomarker.rangeHigh}
+                color={biomarker.chartColor}
+              />
               <StatusCard
-                title="All Normal"
+                title={biomarker.statusTitle}
                 message={biomarker.statusMessage}
               />
-              {index === 0 && activeData.hasUnusualAlert && !alertDismissed && (
-                <UnusualCard onClick={() => setCorrectionOpen(true)} />
+              {index === 0 && activeData.hasUnusualAlert && activeData.unusualPrompt && !alertDismissed && (
+                <UnusualCard prompt={activeData.unusualPrompt} onClick={() => setCorrectionOpen(true)} />
               )}
             </div>
           ))}
@@ -433,6 +436,7 @@ export function DetailPage() {
         {/* IDFW button */}
         <button
           type="button"
+          onClick={() => navigate("/idfw")}
           className="flex size-[76px] items-center justify-center rounded-full bg-gradient-to-br from-cyan-300 to-teal-400 shadow-lg"
         >
           <span className="text-[12px] font-medium text-black">IDFW</span>
@@ -442,6 +446,7 @@ export function DetailPage() {
       {/* ---- Correction Overlay ---- */}
       {correctionOpen && (
         <CorrectionOverlay
+          prompt={activeData.unusualPrompt}
           onClose={() => setCorrectionOpen(false)}
           onDismiss={() => {
             setCorrectionOpen(false);

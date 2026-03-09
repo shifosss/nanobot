@@ -21,9 +21,13 @@ export function AllSetPage() {
             </p>
           </div>
 
-          {/* Image placeholder */}
-          <div className="flex h-[431px] w-full items-center justify-center rounded-[16px] bg-nano-muted shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_0px_rgba(0,0,0,0.1)]">
-            <span className="font-sf text-[16px] text-nano-shadow">Illustration</span>
+          {/* Illustration */}
+          <div className="relative h-[431px] w-full overflow-hidden rounded-[16px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_0px_rgba(0,0,0,0.1)]">
+            <img
+              src="/images/all-set-illustration.png"
+              alt="All set celebration"
+              className="absolute inset-0 size-full object-cover"
+            />
           </div>
 
           {/* CTA */}

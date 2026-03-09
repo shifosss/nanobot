@@ -33,6 +33,7 @@ module.exports = {
           divider: "#E5E5EA",
           "sub-text": "#4A5565",
           heading: "#101828",
+          "blue-light": "#B0ECED",
         },
       },
       fontFamily: {

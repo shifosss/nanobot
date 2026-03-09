@@ -26,17 +26,27 @@ export function WelcomePage() {
             </p>
           </div>
 
-          {/* Image placeholder */}
-          <div className="flex size-[221px] items-center justify-center rounded-[16px] border border-nano-muted bg-nano-muted shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_0px_rgba(0,0,0,0.1)]">
-            <span className="font-sf text-[16px] text-nano-shadow">Scan</span>
+          {/* Scan illustration */}
+          <div className="relative size-[221px] overflow-hidden rounded-[16px] border border-nano-muted shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_0px_rgba(0,0,0,0.1)]">
+            <img
+              src="/images/scan-illustration.png"
+              alt="Scan your device"
+              className="absolute inset-0 size-full object-cover"
+            />
+            <img
+              src="/images/scan-icon.svg"
+              alt=""
+              className="absolute left-1/2 top-1/2 size-[55px] -translate-x-1/2 -translate-y-1/2 mix-blend-multiply"
+            />
           </div>
 
           {/* Action group 1 */}
           <div className="flex w-full flex-col gap-[16px]">
             <Link
               to="/info-check"
-              className="flex h-[53px] w-full items-center justify-center rounded-[14px] border border-nano-muted bg-white font-sf text-[16px] font-medium leading-[24px] text-nano-black"
+              className="flex h-[53px] w-full items-center justify-center gap-[8px] rounded-[14px] border border-nano-muted bg-white font-sf text-[16px] font-medium leading-[24px] text-nano-black"
             >
+              <img src="/images/image-icon.svg" alt="" className="size-[16px]" />
               Scan from image
             </Link>
             <button

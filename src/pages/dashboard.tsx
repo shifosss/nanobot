@@ -1,17 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  getDemoProfileUi,
+  type DashboardStatCard,
+  type DashboardTrendChart,
+  type HealthStatus,
+} from "@/data/demo-health-ui";
 import { useAuth } from "@/providers/auth-context";
-
-/* ---- Types & Mock Data ---- */
-
-type HealthStatus = "normal" | "concern" | "alert";
-
-interface StatItem {
-  label: string;
-  status: HealthStatus;
-  statusLabel: string;
-  bars: number[];
-}
 
 const STATUS_COLOR: Record<HealthStatus, string> = {
   normal: "#3AABD2",
@@ -25,27 +20,12 @@ const BAR_STYLE: Record<HealthStatus, { fill: string; bg: string }> = {
   alert: { fill: "#f98f94", bg: "rgba(249,143,148,0.32)" },
 };
 
-const STAT_GRID: (StatItem | "reorder")[] = [
-  { label: "Heart Health", status: "normal", statusLabel: "Normal", bars: [24, 10, 15, 24, 18] },
-  { label: "Blood Sugar", status: "concern", statusLabel: "Concern", bars: [24, 10, 15, 24, 18] },
-  { label: "Blood Cells", status: "alert", statusLabel: "Alert", bars: [24, 10, 15, 24, 18] },
-  { label: "Blood Cells", status: "alert", statusLabel: "Alert", bars: [24, 10, 15, 24, 18] },
-  { label: "Blood Sugar", status: "concern", statusLabel: "Concern", bars: [24, 10, 15, 24, 18] },
-  { label: "Heart Health", status: "normal", statusLabel: "Normal", bars: [24, 10, 15, 24, 18] },
-  { label: "Heart Health", status: "normal", statusLabel: "Normal", bars: [24, 10, 15, 24, 18] },
-  { label: "Blood Cells", status: "alert", statusLabel: "Alert", bars: [24, 10, 15, 24, 18] },
-  { label: "Heart Health", status: "normal", statusLabel: "Normal", bars: [24, 10, 15, 24, 18] },
-  { label: "Blood Sugar", status: "concern", statusLabel: "Concern", bars: [24, 10, 15, 24, 18] },
-  "reorder",
-];
-
-const PRIORITY_STATS = [
-  { label: "Cortisol", fill: 60 },
-  { label: "Norepinephrine", fill: 45 },
-  { label: "Fasting Glucose", fill: 75 },
-];
-
 const TIME_PERIODS = ["Now", "D", "W", "M", "6M", "Y"] as const;
+const TREND_BAR_COLORS = {
+  previous: "rgba(58,171,210,0.28)",
+  current: "rgba(255,191,103,0.32)",
+  currentAccent: "#ffbf67",
+};
 
 /* ---- Helper Components ---- */
 
@@ -64,7 +44,44 @@ function MiniBarChart({ bars, status }: { bars: number[]; status: HealthStatus }
   );
 }
 
-function StatCard({ item }: { item: StatItem }) {
+function ComparisonBarChart({ chart }: { chart: DashboardTrendChart }) {
+  return (
+    <div className="space-y-2">
+      <ul className="text-[13px] tracking-[-0.08px]">
+        <li className="ml-5 list-disc">{chart.description}</li>
+      </ul>
+      {chart.footerLabel && (
+        <p className="text-right text-[11px] tracking-[0.06px] text-[#99a1af]">
+          {chart.footerLabel}
+        </p>
+      )}
+      <div className="flex h-[61px] items-end gap-0.5">
+        {chart.previousBars.map((height, index) => (
+          <div
+            key={`previous-${chart.title}-${index}`}
+            className="min-w-0 flex-1 rounded-lg"
+            style={{ height, backgroundColor: TREND_BAR_COLORS.previous }}
+          />
+        ))}
+        {chart.currentBars.map((height, index) => (
+          <div
+            key={`current-${chart.title}-${index}`}
+            className="min-w-0 flex-1 rounded-lg"
+            style={{
+              height,
+              backgroundColor:
+                index === chart.currentBars.length - 1
+                  ? TREND_BAR_COLORS.currentAccent
+                  : TREND_BAR_COLORS.current,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ item }: { item: DashboardStatCard }) {
   const color = STATUS_COLOR[item.status];
   return (
     <div className="flex aspect-square flex-col items-center rounded-2xl border border-nano-border bg-white px-1.5 pt-2.5 pb-2.5">
@@ -72,12 +89,15 @@ function StatCard({ item }: { item: StatItem }) {
       <p className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px]" style={{ color }}>
         {item.statusLabel}
       </p>
-      <span className="text-[11px] leading-[13px] tracking-[0.06px]" style={{ color }}>
-        ↘ 1%
+      <span className="text-[11px] leading-[13px] tracking-[0.06px] text-nano-sub-text">
+        {item.value}
       </span>
       <div className="mt-auto w-[76px]">
         <MiniBarChart bars={item.bars} status={item.status} />
       </div>
+      <span className="mt-1 text-[11px] leading-[13px] tracking-[0.06px]" style={{ color }}>
+        {item.deltaLabel}
+      </span>
     </div>
   );
 }
@@ -100,11 +120,21 @@ function SectionHeader({ title, action }: { title: string; action?: string }) {
 /* ---- Main Component ---- */
 
 export function DashboardPage() {
-  const { session } = useAuth();
+  const navigate = useNavigate();
+  const { session, demoMode } = useAuth();
   const [activePeriod, setActivePeriod] = useState<string>("Now");
+  const demoProfile = getDemoProfileUi();
+  const dashboard = demoProfile.dashboard;
+  const statGrid: (DashboardStatCard | "reorder")[] = [...dashboard.statCards, "reorder"];
+  const unusualCategory = demoProfile.categories.find((category) => category.unusualPrompt);
+  const unusualPrompt = unusualCategory?.unusualPrompt;
 
-  const email = session?.user?.email ?? "User";
-  const name = email.split("@")[0];
+  const email = session?.user?.email;
+  const name = email
+    ? email.split("@")[0]
+    : demoMode
+      ? demoProfile.profileName
+      : "User";
 
   return (
     <div className="fixed inset-0 overflow-y-auto bg-nano-surface" style={{ colorScheme: "light" }}>
@@ -140,19 +170,22 @@ export function DashboardPage() {
             <p className="text-[20px] leading-[25px] tracking-[-0.45px]">Everything is</p>
             <div className="flex items-end gap-2">
               <span className="text-[36px] font-bold leading-[41px] tracking-[0.4px] text-nano-teal">
-                Normal
+                {dashboard.bannerStatus}
               </span>
-              <span className="mb-1.5 text-xs text-[#99a1af]">compared to 3/8</span>
+              <span className="mb-1.5 text-xs text-[#99a1af]">
+                {dashboard.bannerCompareLabel}
+              </span>
             </div>
           </div>
           <div className="flex items-end justify-between">
             <div className="w-[258px] text-[17px] leading-[22px] tracking-[-0.43px]">
-              <p>You have a healthy morning,</p>
-              <p>Remember to eat breakfast soon.</p>
+              {dashboard.bannerMessage.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
             </div>
             <div className="flex items-center gap-1.5">
               <div className="size-[9px] rounded-full bg-[#34c759]" />
-              <span className="text-xs">12:34 sync</span>
+              <span className="text-xs">{dashboard.syncLabel}</span>
             </div>
           </div>
         </section>
@@ -168,7 +201,7 @@ export function DashboardPage() {
             </p>
           </div>
           <div className="space-y-4">
-            {PRIORITY_STATS.map((stat) => (
+            {dashboard.priorityStats.map((stat) => (
               <div key={stat.label} className="space-y-1.5">
                 <p className="text-xs font-medium">{stat.label}</p>
                 <div className="h-[7px] w-full overflow-hidden rounded-full bg-gray-200">
@@ -182,29 +215,31 @@ export function DashboardPage() {
           </div>
         </section>
 
-        {/* ---- New Change? ---- */}
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-2xl border border-nano-border bg-white px-4 py-2.5"
-        >
-          <div className="flex items-center gap-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <div className="text-left">
-              <p className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px] text-nano-heading">
-                New change?
-              </p>
-              <p className="text-xs text-[#6a7282]">Get new diet?</p>
+        {unusualCategory && unusualPrompt && (
+          <button
+            type="button"
+            onClick={() => navigate("/detail")}
+            className="flex w-full items-center justify-between rounded-2xl border border-nano-border bg-white px-4 py-2.5"
+          >
+            <div className="flex items-center gap-3">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <div className="text-left">
+                <p className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px] text-nano-heading">
+                  {unusualCategory.fullName}
+                </p>
+                <p className="text-xs text-[#6a7282]">{unusualPrompt.question}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-1 text-[#6a7282]">
-            <span className="font-inter text-sm tracking-[-0.15px]">Update</span>
-            <span className="text-xs font-medium">›</span>
-          </div>
-        </button>
+            <div className="flex items-center gap-1 text-[#6a7282]">
+              <span className="font-inter text-sm tracking-[-0.15px]">Review</span>
+              <span className="text-xs font-medium">›</span>
+            </div>
+          </button>
+        )}
 
         {/* ---- Summary ---- */}
         <section className="space-y-2">
@@ -212,20 +247,45 @@ export function DashboardPage() {
 
           {/* Stat detail card */}
           <div className="flex overflow-hidden rounded-2xl bg-white">
-            <div className="m-4 h-[105px] w-[113px] shrink-0 bg-nano-muted" />
+            <div className="m-4 flex h-[105px] w-[113px] shrink-0 flex-col rounded-[24px] bg-nano-muted px-3 py-3">
+              <p className="text-[13px] font-semibold leading-[18px] tracking-[-0.08px] text-nano-heading">
+                {dashboard.summaryFeature.title}
+              </p>
+              <p className="mt-1 text-[22px] font-bold leading-[28px] tracking-[-0.26px] text-nano-heading">
+                {dashboard.summaryFeature.value}
+              </p>
+              <div className="mt-auto">
+                <MiniBarChart
+                  bars={dashboard.trendHighlight.charts[0].currentBars.slice(-5)}
+                  status="concern"
+                />
+              </div>
+            </div>
             <div className="flex flex-1 flex-col gap-[18px] py-4 pr-4">
-              {[1, 2].map((n) => (
-                <div key={n} className="space-y-1.5">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="size-3 rounded-full bg-[#feb300]" />
+                    <p className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
+                      {dashboard.summaryFeature.title}
+                    </p>
+                  </div>
+                  <span className="text-xs">{dashboard.summaryFeature.value}</span>
+                </div>
+                <p className="text-xs">{dashboard.summaryFeature.description}</p>
+              </div>
+              {dashboard.summaryFeature.secondary.map((entry) => (
+                <div key={entry.title} className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="size-3 rounded-full bg-nano-pink" />
                       <p className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
-                        Stat {n}
+                        {entry.title}
                       </p>
                     </div>
-                    <span className="text-xs">123</span>
+                    <span className="text-xs">{entry.value}</span>
                   </div>
-                  <p className="text-xs">Soft text for suggestion</p>
+                  <p className="text-xs">{entry.description}</p>
                 </div>
               ))}
             </div>
@@ -252,7 +312,7 @@ export function DashboardPage() {
 
           {/* Stat card grid */}
           <div className="grid grid-cols-3 gap-3">
-            {STAT_GRID.map((item, i) =>
+            {statGrid.map((item, i) =>
               item === "reorder" ? (
                 <div
                   key={i}
@@ -268,9 +328,9 @@ export function DashboardPage() {
           </div>
 
           <div className="flex justify-center py-2">
-            <button type="button" className="text-[15px] tracking-[-0.23px] text-nano-teal">
+            <Link to="/detail" className="text-[15px] tracking-[-0.23px] text-nano-teal">
               see all details
-            </button>
+            </Link>
           </div>
         </section>
 
@@ -281,61 +341,21 @@ export function DashboardPage() {
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="size-[17px] rounded-full bg-nano-pink" />
-                <p className="text-[15px] font-semibold tracking-[-0.23px]">Category 1</p>
+                <p className="text-[15px] font-semibold tracking-[-0.23px]">
+                  {dashboard.trendHighlight.categoryLabel}
+                </p>
               </div>
               <span className="text-xs font-medium">›</span>
             </div>
             <p className="mb-3 text-[15px] leading-[20px] tracking-[-0.23px]">
-              The time your body feels sleepy is 2 hours later than last 5 weeks.
+              {dashboard.trendHighlight.headline}
             </p>
             <div className="mb-3 h-px bg-nano-divider" />
 
-            {/* Chart 1: Melatonin */}
-            <div className="mb-3 space-y-2">
-              <ul className="text-[13px] tracking-[-0.08px]">
-                <li className="ml-5 list-disc">Melatonin was delay 20%</li>
-              </ul>
-              <p className="text-right text-[11px] tracking-[0.06px] text-[#99a1af]">2 am</p>
-              <div className="flex h-[61px] items-center gap-0.5">
-                {[47, 61, 29, 47, 47, 47, 19].map((h, i) => (
-                  <div
-                    key={`m1-${i}`}
-                    className="min-w-0 flex-1 rounded-lg"
-                    style={{ height: h, backgroundColor: "rgba(58,171,210,0.28)" }}
-                  />
-                ))}
-                {[29, 19, 47, 29, 29, 29, 19].map((h, i) => (
-                  <div
-                    key={`m2-${i}`}
-                    className="min-w-0 flex-1 rounded-lg"
-                    style={{ height: h, backgroundColor: "rgba(255,191,103,0.32)" }}
-                  />
-                ))}
-                <div
-                  className="min-w-0 flex-1 rounded-lg"
-                  style={{ height: 35, backgroundColor: "#ffbf67" }}
-                />
-              </div>
-            </div>
-
-            {/* Chart 2: Cortisol */}
-            <div className="space-y-2">
-              <ul className="text-[13px] tracking-[-0.08px]">
-                <li className="ml-5 list-disc">Cortisol&rsquo;s difference has decreased</li>
-              </ul>
-              <div className="flex h-[28px] items-end gap-0.5">
-                {[28, 12, 28, 12, 17, 28, 28, 12, 17, 28].map((h, i) => (
-                  <div
-                    key={`c-${i}`}
-                    className="min-w-0 flex-1 rounded-t-lg"
-                    style={{ height: h, backgroundColor: "rgba(255,191,103,0.32)" }}
-                  />
-                ))}
-                <div
-                  className="min-w-0 flex-1 rounded-t-lg"
-                  style={{ height: 21, backgroundColor: "#ffbf67" }}
-                />
-              </div>
+            <div className="space-y-3">
+              {dashboard.trendHighlight.charts.map((chart) => (
+                <ComparisonBarChart key={chart.title} chart={chart} />
+              ))}
             </div>
           </div>
         </section>
@@ -345,24 +365,24 @@ export function DashboardPage() {
           <h3 className="font-inter text-lg font-medium tracking-[-0.44px] text-nano-heading">
             Today&rsquo;s Suggestions
           </h3>
-          <div className="flex gap-3 rounded-[14px] bg-[#faf5ff] p-3">
-            <span className="text-lg">💧</span>
-            <div>
-              <p className="text-sm font-medium text-nano-heading">Drink more water</p>
-              <p className="text-xs text-nano-sub-text">Helps blood (Hematocrit) hydrated</p>
+          {dashboard.suggestions.map((suggestion) => (
+            <div
+              key={suggestion.title}
+              className={`flex gap-3 rounded-[14px] p-3 ${
+                suggestion.tone === "teal" ? "bg-[#ecfeff]" : "bg-[#fefce8]"
+              }`}
+            >
+              <span className="text-lg">{suggestion.emoji}</span>
+              <div>
+                <p className="text-[15px] font-semibold tracking-[-0.23px] text-nano-heading">
+                  {suggestion.title}
+                </p>
+                <p className="text-[11px] tracking-[0.06px] text-nano-sub-text">
+                  {suggestion.body}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-3 rounded-[14px] bg-[#fefce8] p-3">
-            <span className="text-lg">😴</span>
-            <div>
-              <p className="text-[15px] font-semibold tracking-[-0.23px] text-nano-heading">
-                Sleep earlier tonight
-              </p>
-              <p className="text-[11px] tracking-[0.06px] text-nano-sub-text">
-                Help your Circadian Rhythm becomes stable
-              </p>
-            </div>
-          </div>
+          ))}
         </section>
 
         {/* ---- Footer ---- */}
@@ -400,6 +420,7 @@ export function DashboardPage() {
         </div>
         <button
           type="button"
+          onClick={() => navigate("/idfw")}
           className="flex size-[76px] items-center justify-center rounded-full bg-nano-teal shadow-lg"
         >
           <span className="text-xs font-medium text-nano-text">IDFW</span>

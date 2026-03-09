@@ -13,7 +13,11 @@
     "db:sample:load:hosted": "node scripts/db/load-sample-data.mjs --target=hosted",
     "db:sample:verify:hosted": "node scripts/db/verify-db-scenarios.mjs --target=hosted",
     "db:sample:cleanup:hosted": "node scripts/db/cleanup-sample-data.mjs --target=hosted",
-    "db:sample:cycle:hosted": "node scripts/db/load-sample-data.mjs --target=hosted && node scripts/db/verify-db-scenarios.mjs --target=hosted && node scripts/db/cleanup-sample-data.mjs --target=hosted"
+    "db:sample:cycle:hosted": "node scripts/db/load-sample-data.mjs --target=hosted && node scripts/db/verify-db-scenarios.mjs --target=hosted && node scripts/db/cleanup-sample-data.mjs --target=hosted",
+    "db:demo:load:hosted": "node scripts/db/load-demo-account-data.mjs --target=hosted",
+    "db:demo:verify:hosted": "node scripts/db/verify-demo-account-data.mjs --target=hosted",
+    "db:demo:cleanup:hosted": "node scripts/db/cleanup-demo-account-data.mjs --target=hosted",
+    "db:demo:cycle:hosted": "node scripts/db/load-demo-account-data.mjs --target=hosted && node scripts/db/verify-demo-account-data.mjs --target=hosted"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",

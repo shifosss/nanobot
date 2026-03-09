@@ -41,6 +41,22 @@ npm run db:sample:cleanup:hosted
 
 For one-shot runs, use `npm run db:sample:cycle:local` or `npm run db:sample:cycle:hosted`.
 
+## Hosted Demo Account Data
+
+The repo also includes a repeatable hosted-only loader for the real demo account `alex@example.com`. It normalizes the two existing profiles (`alex`, `judy`), provisions Comprehensive subscriptions plus all three device types, and generates 4 weeks of half-hourly biomarker data with mild abnormalities and menstrual-cycle context.
+
+Hosted demo commands:
+
+```bash
+npm run db:demo:load:hosted
+npm run db:demo:verify:hosted
+npm run db:demo:cleanup:hosted
+```
+
+For a one-shot load plus verification run, use `npm run db:demo:cycle:hosted`.
+
+See [`docs/demo-account-data.md`](/E:/Alex's%20Local%20Codebases/nanobot/docs/demo-account-data.md) for the exact dataset design, supplemental ranges, and cleanup rules.
+
 ## Environment
 
 Create `.env` with:
