@@ -3,6 +3,7 @@ export type HealthStatus = "normal" | "concern" | "alert";
 export interface DashboardPriorityStat {
   label: string;
   fill: number;
+  description: string;
 }
 
 export interface DashboardStatCard {
@@ -646,9 +647,9 @@ const dashboard: DashboardData = {
   ],
   syncLabel: "9:38 sync",
   priorityStats: [
-    { label: "Cortisol (PM)", fill: 68 },
-    { label: "Postprandial Glucose", fill: 54 },
-    { label: "Vitamin D", fill: 36 },
+    { label: "Cortisol (PM)", fill: 68, description: "Slowing decreasing" },
+    { label: "Postprandial Glucose", fill: 54, description: "Stable" },
+    { label: "Vitamin D", fill: 36, description: "Stable" },
   ],
   statCards: categories.map((category) => category.summary),
   summaryFeature: {

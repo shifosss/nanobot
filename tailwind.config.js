@@ -34,6 +34,8 @@ module.exports = {
           "sub-text": "#4A5565",
           heading: "#101828",
           "blue-light": "#B0ECED",
+          "red-light": "#FAC7B3",
+          "yellow-light": "#FFE199",
         },
       },
       fontFamily: {

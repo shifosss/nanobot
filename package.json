@@ -17,7 +17,10 @@
     "db:demo:load:hosted": "node scripts/db/load-demo-account-data.mjs --target=hosted",
     "db:demo:verify:hosted": "node scripts/db/verify-demo-account-data.mjs --target=hosted",
     "db:demo:cleanup:hosted": "node scripts/db/cleanup-demo-account-data.mjs --target=hosted",
-    "db:demo:cycle:hosted": "node scripts/db/load-demo-account-data.mjs --target=hosted && node scripts/db/verify-demo-account-data.mjs --target=hosted"
+    "db:demo:cycle:hosted": "node scripts/db/load-demo-account-data.mjs --target=hosted && node scripts/db/verify-demo-account-data.mjs --target=hosted",
+    "viz:figma:export:hosted": "node scripts/visualizations/export-figma-charts.mjs --target=hosted",
+    "viz:figma:verify:hosted": "node scripts/visualizations/verify-figma-chart-exports.mjs --target=hosted",
+    "viz:figma:cycle:hosted": "node scripts/visualizations/export-figma-charts.mjs --target=hosted && node scripts/visualizations/verify-figma-chart-exports.mjs --target=hosted"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
@@ -27,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^4.4.1",

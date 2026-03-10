@@ -108,11 +108,11 @@ function MenuDivider() {
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { session, signOut } = useAuth();
+  const { session, signOut, activeProfile } = useAuth();
   const [pending, setPending] = useState(false);
 
-  const email = session?.user?.email ?? "User";
-  const displayName = email.split("@")[0];
+  const displayName = activeProfile?.display_name
+    ?? (session?.user?.email ? session.user.email.split("@")[0] : "User");
 
   async function handleSignOut() {
     setPending(true);

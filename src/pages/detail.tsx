@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CATEGORIES } from "@/data/biomarker-categories";
-import type { BiomarkerItem, CategoryData, CorrectionPromptData } from "@/data/biomarker-categories";
+import type { BiomarkerItem, CategoryData, CorrectionPromptData } from "@/data/demo-health-ui";
 import { CorrectionOverlay } from "@/components/correction-overlay";
 import { MetricTrendChart } from "@/components/metric-trend-chart";
+import { useHealthData, type TimePeriod } from "@/hooks/use-health-data";
+import { computeHealthStatus, statusToColor } from "@/lib/health-engine";
 
-const TIME_PERIODS = ["Now", "D", "W", "M", "6M", "Y"] as const;
+const TIME_PERIODS: TimePeriod[] = ["Now", "D", "W", "M", "6M", "Y"];
+
+const CARD_SHADOW = "0px 4px 8px 0px rgba(144,127,160,0.1)";
 
 /* ---- Icons ---- */
 
@@ -98,19 +101,23 @@ function CategoryPill({
   isActive: boolean;
   onClick: () => void;
 }) {
+  // Determine border color from category health status
+  const catStatus = category.summary.status;
+  const { color: statusColor } = statusToColor(catStatus);
+  const borderColor = isActive ? "transparent" : statusColor;
+
   return (
     <button type="button" onClick={onClick} className="relative shrink-0">
       {category.hasAlert && (
         <div className="absolute -top-0.5 right-0 z-10 flex size-[22px] items-center justify-center rounded-full bg-nano-error">
-          <span className="text-[11px] font-bold text-white">2</span>
+          <span className="text-[11px] font-bold text-white">!</span>
         </div>
       )}
       <div
         className={`mt-[6px] flex h-[75px] w-[64px] flex-col items-center justify-center rounded-[60px] ${
-          isActive
-            ? "bg-[#3acfd2] text-white"
-            : "border border-[#9333ea] text-nano-purple"
+          isActive ? "bg-[#3acfd2] text-white" : ""
         }`}
+        style={isActive ? undefined : { border: `1px solid ${borderColor}`, color: statusColor }}
       >
         <div className="flex w-[56px] flex-col items-center gap-[2px]">
           <HeartIcon />
@@ -123,22 +130,33 @@ function CategoryPill({
   );
 }
 
+/** Biomarker stats header — matches Figma node 101:647 layout. */
 function BiomarkerStats({ biomarker }: { biomarker: BiomarkerItem }) {
+  const status = computeHealthStatus(biomarker.average, biomarker.rangeLow, biomarker.rangeHigh);
+  const { color: valueColor } = statusToColor(status);
+
   return (
     <div className="w-[167px]">
-      <p className="text-[12px] font-medium leading-[16px] text-black">Average</p>
+      {/* Biomarker name — displayed at top per Figma */}
+      <p className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px] text-nano-black">
+        {biomarker.name}
+      </p>
+      <p className="text-[12px] font-medium leading-[16px] text-nano-shadow">Average</p>
       <div className="flex items-end gap-[4px]">
-        <span className="text-[28px] leading-[34px] tracking-[0.38px] text-black">
+        <span
+          className="text-[28px] leading-[34px] tracking-[0.38px]"
+          style={{ color: valueColor }}
+        >
           {biomarker.average}
         </span>
         <div className="flex flex-col items-start justify-center">
-          <span className="text-[11px] font-semibold leading-[13px] tracking-[0.06px] text-black">
+          <span className="text-[11px] font-semibold leading-[13px] tracking-[0.06px] text-nano-shadow">
             {biomarker.unit}
           </span>
           <div className="h-[4px] w-[44px]" />
         </div>
       </div>
-      <p className="text-black">
+      <p className="text-nano-shadow">
         <span className="text-[13px] font-semibold leading-[18px] tracking-[-0.08px]">
           {biomarker.rangeLow}{" "}
         </span>
@@ -148,7 +166,7 @@ function BiomarkerStats({ biomarker }: { biomarker: BiomarkerItem }) {
         </span>
         <span className="text-[11px] leading-[13px] tracking-[0.06px]">{biomarker.unit}</span>
       </p>
-      <p className="text-[13px] font-semibold leading-[18px] tracking-[-0.08px] text-black">
+      <p className="text-[13px] font-semibold leading-[18px] tracking-[-0.08px] text-nano-black">
         {biomarker.dateRange}
       </p>
     </div>
@@ -157,7 +175,10 @@ function BiomarkerStats({ biomarker }: { biomarker: BiomarkerItem }) {
 
 function StatusCard({ title, message }: { title: string; message: string }) {
   return (
-    <div className="flex w-full items-center gap-[16px] rounded-[16px] border-[0.612px] border-nano-border bg-white p-[16px]">
+    <div
+      className="flex w-full items-center gap-[16px] rounded-[16px] border-[0.612px] border-nano-border bg-white p-[16px]"
+      style={{ boxShadow: CARD_SHADOW }}
+    >
       <div className="w-[40px] shrink-0">
         <CheckShieldIcon />
       </div>
@@ -187,19 +208,19 @@ function UnusualCard({
       className="flex w-[345px] items-center justify-between rounded-[16px] border-[0.612px] border-[#feb300] bg-[rgba(255,191,103,0.08)] p-[16px] text-left"
     >
       <div className="w-[222px]">
-        <p className="text-[15px] font-semibold leading-[20px] tracking-[-0.23px] text-[#db6e15]">
-          {prompt.biomarkerLabel} looks unusual
+        <p className="text-[15px] font-semibold leading-[20px] tracking-[-0.23px] text-[#F27240]">
+          Something unusual
         </p>
         <p className="text-[12px] leading-[16px] text-nano-sub-text">
           {prompt.question}
         </p>
-        <div className="mt-2 inline-flex h-[28px] items-center justify-center rounded-[50px] border border-[rgba(38,38,38,0.1)] bg-[#cd5f04] px-[16px]">
+        <div className="mt-2 inline-flex h-[28px] items-center justify-center rounded-[50px] border border-[rgba(38,38,38,0.1)] bg-[#F27240] px-[16px]">
           <span className="text-[15px] leading-[20px] tracking-[-0.23px] text-white">
             Check it now
           </span>
         </div>
       </div>
-      <div className="flex h-[100px] w-[79px] shrink-0 items-center justify-center bg-nano-muted">
+      <div className="flex h-[100px] w-[79px] shrink-0 items-center justify-center rounded-lg bg-nano-muted">
         <span className="text-[17px] font-semibold tracking-[-0.43px] text-black/30">img</span>
       </div>
     </button>
@@ -232,13 +253,14 @@ function ActionRow({ icon, label }: { icon: React.ReactNode; label: string }) {
 export function DetailPage() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState(0);
-  const [activePeriod, setActivePeriod] = useState<string>("Now");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const [pillsVisible, setPillsVisible] = useState(true);
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
+
+  const { loading, categories, period, setPeriod } = useHealthData();
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -262,7 +284,15 @@ export function DetailPage() {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  const activeData = CATEGORIES[activeCategory];
+  if (loading || categories.length === 0) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white" style={{ colorScheme: "light" }}>
+        <p className="text-lg text-nano-shadow">Loading...</p>
+      </div>
+    );
+  }
+
+  const activeData = categories[activeCategory];
   const selectedCategoryName = activeData?.fullName ?? "Biomarker Group";
 
   return (
@@ -272,13 +302,11 @@ export function DetailPage() {
       style={{ colorScheme: "light" }}
     >
       <div className="mx-auto max-w-[393px] font-sf">
-        {/* ---- Sticky Zone: Header + Category Pills + Group Header ---- */}
+        {/* ---- Sticky Zone ---- */}
         <div className="sticky top-0 z-20">
-          {/* Header (always visible) */}
+          {/* Header */}
           <header className="flex flex-col gap-[16px] overflow-clip bg-white pt-[26px] px-[24px] pb-[12px]">
-            {/* Status bar spacer */}
             <div className="h-[28px] w-[340px] shrink-0" />
-            {/* Nav row */}
             <div className="flex w-[345px] items-center justify-between">
               <button
                 type="button"
@@ -293,7 +321,8 @@ export function DetailPage() {
               <div className="h-[22px] w-[24px]" />
             </div>
           </header>
-          {/* Collapsible category pills (hides on scroll down, shows on scroll up) */}
+
+          {/* Category pills */}
           <div
             className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
               pillsVisible ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
@@ -302,7 +331,7 @@ export function DetailPage() {
             <div className="min-h-0 overflow-hidden">
               <div className="overflow-x-auto bg-white px-[16px] py-[6px] scrollbar-none">
                 <div className="flex items-center px-[4px]" style={{ width: "max-content" }}>
-                  {CATEGORIES.map((cat, i) => (
+                  {categories.map((cat, i) => (
                     <CategoryPill
                       key={cat.id}
                       category={cat}
@@ -315,36 +344,39 @@ export function DetailPage() {
             </div>
           </div>
 
-          {/* Group header + time filter (always visible) */}
+          {/* Group header + time filter */}
           <div className="flex flex-col gap-[16px] bg-nano-surface px-[24px] py-[16px]">
             <p className="w-[345px] text-center text-[20px] font-semibold leading-[25px] tracking-[-0.45px] text-black">
               {selectedCategoryName}
             </p>
-            <div className="flex w-[345px] items-center">
-              {/* Time filter */}
-              <div className="relative flex h-[22px] w-[308px] items-center rounded-[16px] bg-white">
-                <div className="flex items-center gap-[32px] px-[15px]">
+            <div className="flex w-[345px] items-center gap-[14px]">
+              {/* Time filter — flex-based centering */}
+              <div className="relative inline-grid">
+                <div
+                  className="col-start-1 row-start-1 h-[22px] w-[308px] rounded-[16px] border border-nano-line bg-white"
+                  style={{ boxShadow: CARD_SHADOW }}
+                />
+                <div className="col-start-1 row-start-1 flex h-[22px] w-[308px] items-center">
                   {TIME_PERIODS.map((p) => (
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setActivePeriod(p)}
-                      className={`relative text-[15px] font-semibold leading-[20px] tracking-[-0.23px] text-black ${
-                        activePeriod === p ? "z-10" : ""
+                      onClick={() => setPeriod(p)}
+                      className={`relative flex h-full flex-1 items-center justify-center text-[15px] font-semibold leading-[20px] tracking-[-0.23px] ${
+                        period === p ? "text-white" : "text-nano-black"
                       }`}
                     >
-                      {activePeriod === p && (
-                        <div className="absolute inset-y-[-1px] left-1/2 w-[32px] -translate-x-1/2 rounded-[16px] bg-nano-muted" />
+                      {period === p && (
+                        <div className="absolute inset-y-0 left-1/2 w-[32px] -translate-x-1/2 rounded-[16px] bg-nano-teal" />
                       )}
                       <span className="relative">{p}</span>
                     </button>
                   ))}
                 </div>
               </div>
-              {/* Sort icon */}
               <button
                 type="button"
-                className="ml-auto flex size-[22px] items-center justify-center"
+                className="flex size-[22px] shrink-0 items-center justify-center"
               >
                 <SortIcon />
               </button>
@@ -382,7 +414,10 @@ export function DetailPage() {
             <h2 className="text-[22px] font-bold leading-[28px] tracking-[-0.26px] text-nano-heading">
               About {selectedCategoryName}
             </h2>
-            <div className="flex w-full flex-col gap-[16px] rounded-[16px] border-[0.612px] border-nano-border bg-white p-[24px]">
+            <div
+              className="flex w-full flex-col gap-[16px] rounded-[16px] border border-nano-line bg-white p-[24px]"
+              style={{ boxShadow: CARD_SHADOW }}
+            >
               <p className="w-[285px] text-[15px] leading-[20px] tracking-[-0.23px] text-nano-sub-text">
                 {activeData.aboutDescription}
               </p>
@@ -392,7 +427,7 @@ export function DetailPage() {
                 </p>
                 <button
                   type="button"
-                  className="mt-[12px] text-[17px] font-semibold leading-[22px] tracking-[-0.43px] text-nano-purple"
+                  className="mt-[12px] text-[17px] font-semibold leading-[22px] tracking-[-0.43px] text-nano-pink"
                 >
                   Read health article &rarr;
                 </button>
@@ -405,7 +440,10 @@ export function DetailPage() {
             <h2 className="text-[22px] font-bold leading-[28px] tracking-[-0.26px] text-nano-heading">
               Action
             </h2>
-            <div className="flex w-[345px] flex-col gap-[4px] rounded-[16px] bg-white py-[8px]">
+            <div
+              className="flex w-[345px] flex-col gap-[4px] rounded-[16px] border border-nano-line bg-white py-[8px]"
+              style={{ boxShadow: CARD_SHADOW }}
+            >
               <ActionRow icon={<GearIcon />} label="Data Log In" />
               <div className="h-px w-full bg-nano-divider" />
               <ActionRow icon={<BellIcon />} label="Share" />
@@ -417,9 +455,7 @@ export function DetailPage() {
       {/* ---- Bottom Navigation ---- */}
       <nav className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-[98px]">
         <div className="relative h-[61px] w-[167px] overflow-clip rounded-[34px] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
-          {/* Active indicator behind Detail tab */}
           <div className="absolute left-[75px] top-[3.67px] h-[54px] w-[86px] rounded-[27px] bg-nano-muted" />
-          {/* Home tab */}
           <Link
             to="/"
             className="absolute left-[17px] top-1/2 flex -translate-y-1/2 flex-col items-center gap-[3px] text-black"
@@ -427,13 +463,11 @@ export function DetailPage() {
             <HomeIcon />
             <span className="text-[12px] font-medium leading-[16px]">Home</span>
           </Link>
-          {/* Detail tab (active) */}
           <div className="absolute left-[86px] top-[9px] flex w-[66px] flex-col items-center gap-[3px] text-black">
             <ChartIcon />
             <span className="text-[12px] font-medium leading-[16px]">Detail</span>
           </div>
         </div>
-        {/* IDFW button */}
         <button
           type="button"
           onClick={() => navigate("/idfw")}

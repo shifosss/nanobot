@@ -5,6 +5,7 @@ import {
   AuthContext,
   type Account,
   type AuthContextValue,
+  type Profile,
 } from "@/providers/auth-context";
 
 const DEMO_KEY = "nano-demo";
@@ -12,6 +13,8 @@ const DEMO_KEY = "nano-demo";
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [demoMode, setDemoMode] = useState(
     () => sessionStorage.getItem(DEMO_KEY) === "1",
   );
@@ -33,21 +36,41 @@ export function AuthProvider({ children }: PropsWithChildren) {
       requestId: number,
       client: NonNullable<typeof authClient>,
     ) {
+      // Load account
       const accountResult = await client
         .from("accounts")
         .select("id, email, account_type, created_at, updated_at")
         .eq("id", userId)
         .maybeSingle();
 
-      if (!active || requestId !== requestRef.current) {
-        return;
-      }
+      if (!active || requestId !== requestRef.current) return;
 
       if (accountResult.error) {
         console.error("Failed to load account:", accountResult.error);
       }
 
-      setAccount((accountResult.data as Account | null) ?? null);
+      const acct = (accountResult.data as Account | null) ?? null;
+      setAccount(acct);
+
+      // Load profiles for this account
+      if (acct) {
+        const profilesResult = await client
+          .from("profiles")
+          .select("*")
+          .eq("account_id", acct.id)
+          .order("created_at", { ascending: true });
+
+        if (!active || requestId !== requestRef.current) return;
+
+        if (profilesResult.error) {
+          console.error("Failed to load profiles:", profilesResult.error);
+        }
+
+        const loadedProfiles = (profilesResult.data as Profile[]) ?? [];
+        setProfiles(loadedProfiles);
+        setActiveProfile(loadedProfiles[0] ?? null);
+      }
+
       setLoading(false);
     }
 
@@ -55,6 +78,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       requestRef.current += 1;
       setSession(null);
       setAccount(null);
+      setProfiles([]);
+      setActiveProfile(null);
       setLoading(false);
     }
 
@@ -74,9 +99,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const {
       data: { subscription },
     } = authClient.auth.onAuthStateChange((_event, nextSession) => {
-      if (!active) {
-        return;
-      }
+      if (!active) return;
 
       if (!nextSession) {
         syncSignedOutState();
@@ -102,6 +125,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     loading,
     session,
     account,
+    profiles,
+    activeProfile,
+    setActiveProfile,
     demoMode,
     enterDemoMode,
     async signOut() {
@@ -111,6 +137,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       sessionStorage.removeItem(DEMO_KEY);
       setDemoMode(false);
       setAccount(null);
+      setProfiles([]);
+      setActiveProfile(null);
     },
   };
 
